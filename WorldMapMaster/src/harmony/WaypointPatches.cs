@@ -13,7 +13,7 @@ public static class WaypointPatches
 
     [HarmonyPatch(typeof(WaypointMapComponent), "OnMouseMove")]
     [HarmonyPostfix]
-    public static void TrackWayPointOnMouseMove(bool ___mouseOver, int ___waypointIndex) => WorldMapMasterModSystem.TrackedWaypointIndex = ___mouseOver ? ___waypointIndex : -1;
+    public static void TrackWayPointOnMouseMove(bool ___mouseOver, int ___waypointIndex) => WorldMapMasterReforgedModSystem.TrackedWaypointIndex = ___mouseOver ? ___waypointIndex : -1;
 
 
     [HarmonyPatch(typeof(GuiDialogAddWayPoint), "TryOpen")]

@@ -19,7 +19,7 @@ public class CustomWaypointMapLayer(ICoreAPI api, IWorldMapManager mapSink) : Wa
 
     private readonly ICoreClientAPI capi = (ICoreClientAPI)api;
 
-    private readonly ILogger logger = api.ModLoader.GetModSystem<WorldMapMasterModSystem>().Mod.Logger;
+    private readonly ILogger logger = api.ModLoader.GetModSystem<WorldMapMasterReforgedModSystem>().Mod.Logger;
     
     public string SearchText { get; private set; } = string.Empty;
 
@@ -33,7 +33,7 @@ public class CustomWaypointMapLayer(ICoreAPI api, IWorldMapManager mapSink) : Wa
 
     public override void OnMouseMoveClient(MouseEvent args, GuiElementMap mapElem, StringBuilder hoverText)
     {
-        WorldMapMasterModSystem.TrackedWaypointIndex = -1;
+        WorldMapMasterReforgedModSystem.TrackedWaypointIndex = -1;
 
         base.OnMouseMoveClient(args, mapElem, hoverText);
     }

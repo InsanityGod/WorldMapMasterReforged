@@ -8,7 +8,7 @@ using Vintagestory.GameContent;
 
 namespace WorldMapMaster;
 
-public partial class WorldMapMasterModSystem : ModSystem
+public partial class WorldMapMasterReforgedModSystem : ModSystem
 {
     public static int TrackedWaypointIndex { get; internal set; } = -1;
     
