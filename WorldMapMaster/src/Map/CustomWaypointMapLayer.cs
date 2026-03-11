@@ -11,35 +11,30 @@ using WorldMapMaster.src.UI;
 
 namespace WorldMapMaster.src.Map;
 
-public class CustomWaypointMapLayer : WaypointMapLayer
+public class CustomWaypointMapLayer(ICoreAPI api, IWorldMapManager mapSink) : WaypointMapLayer(api, mapSink)
 {
     public const string ComposerKey = "worldmap-layer-waypoints";
     
-    private readonly ICoreClientAPI capi;
+    public static readonly string[] ValidOrderByValues = ["timeasc", "timedesc", "distanceasc", "distancedesc", "titleasc", "titledesc"];
+
+    private readonly ICoreClientAPI capi = (ICoreClientAPI)api;
+
+    private readonly ILogger logger = api.ModLoader.GetModSystem<WorldMapMasterModSystem>().Mod.Logger;
     
     public string SearchText { get; private set; } = string.Empty;
 
     public string OrderBy { get; private set; } = "timeasc";
+
+    private readonly List<WaypointListItem> SortedWaypointItems = [];
+
+    private GuiDialogWorldMap? _guiDialogWorldMap;
     
-    public static readonly string[] ValidOrderByValues = new string[] { "timeasc", "timedesc", "distanceasc", "distancedesc", "titleasc", "titledesc" };
-
-    private List<WaypointListItem> SortedWaypointItems = new();
-
-    private GuiDialogWorldMap _guiDialogWorldMap;
-    
-    private GuiComposer _compo;
-
-    private readonly ILogger logger;
-
-    public CustomWaypointMapLayer(ICoreAPI api, IWorldMapManager mapSink) : base(api, mapSink)
-    {
-        capi = api as ICoreClientAPI;
-        logger = api.ModLoader.GetModSystem<WorldMapMasterModSystem>().Mod.Logger;
-    }
+    private GuiComposer? _compo;
 
     public override void OnMouseMoveClient(MouseEvent args, GuiElementMap mapElem, StringBuilder hoverText)
     {
         WorldMapMasterModSystem.TrackedWaypointIndex = -1;
+
         base.OnMouseMoveClient(args, mapElem, hoverText);
     }
 
@@ -55,7 +50,8 @@ public class CustomWaypointMapLayer : WaypointMapLayer
     {
         _guiDialogWorldMap = guiDialogWorldMap ?? _guiDialogWorldMap;
         _compo = compo ?? _compo;
-        
+        if(_compo is null || _guiDialogWorldMap is null) return;
+
         UpdateSorting();
         _compo.OnFocusChanged = OnFocusChange;
         ElementBounds dlgBounds = ElementStdBounds.AutosizedMainDialog
@@ -71,11 +67,11 @@ public class CustomWaypointMapLayer : WaypointMapLayer
         _guiDialogWorldMap.Composers[ComposerKey] = capi.Gui
             .CreateCompo(ComposerKey, dlgBounds)
             .AddShadedDialogBG(bgBounds, false)
-            .AddDialogTitleBar(Lang.Get("Your waypoints:"), () => _guiDialogWorldMap.Composers[ComposerKey].Enabled = false)
+            .AddDialogTitleBar(Lang.Get("worldmapmasterreforged:waypoints-title"), () => _guiDialogWorldMap.Composers[ComposerKey].Enabled = false)
             .BeginChildElements(bgBounds)
             .AddDropDown(
-                SortedWaypointItems.Select(o => o.Id).ToArray(),
-                SortedWaypointItems.Select(o => o.Title).ToArray(),
+                ["placeholder", .. SortedWaypointItems.Select(o => o.Id)],
+                ["- - -", .. SortedWaypointItems.Select(o => o.Title)],
                 0,
                 OnSelectedWaypointChanged,
                 ElementBounds.Fixed(0, 75, 300, 35),
@@ -84,12 +80,12 @@ public class CustomWaypointMapLayer : WaypointMapLayer
             .AddAutoclearingText(
                 ElementBounds.Fixed(0, 30, 120, 35),
                 OnSearchTextChanged,
-                null,
+                null!,
                 "qs"
             )
             .AddDropDown(
                 ValidOrderByValues,
-                ValidOrderByValues.Select(value => Lang.Get(value)).ToArray(),
+                [.. ValidOrderByValues.Select(value => Lang.Get($"worldmapmasterreforged:{value}"))],
                 0,
                 OnOrderByChanged,
                 ElementBounds.Fixed(125, 30, 125, 35),
@@ -98,12 +94,16 @@ public class CustomWaypointMapLayer : WaypointMapLayer
             .EndChildElements()
             .Compose();
 
-        var searchElement = _guiDialogWorldMap.Composers[ComposerKey].GetElement("qs") as GuiElementTextInput;
-        searchElement.SetValue(SearchText);
-        searchElement.SetPlaceHolderText(Lang.Get("Search..."));
+        if (_guiDialogWorldMap.Composers[ComposerKey].GetElement("qs") is GuiElementTextInput searchElement)
+        {
+            searchElement.SetValue(SearchText);
+            searchElement.SetPlaceHolderText(Lang.Get("Search..."));
+        }
 
-        var orderList = _guiDialogWorldMap.Composers[ComposerKey].GetElement("orderlist") as GuiElementDropDown;
-        orderList.SetSelectedValue(OrderBy);
+        if (_guiDialogWorldMap.Composers[ComposerKey].GetElement("orderlist") is GuiElementDropDown orderList)
+        {
+            orderList.SetSelectedValue(OrderBy);
+        }
         
         _guiDialogWorldMap.Composers[ComposerKey].Enabled = false;
     }
@@ -130,11 +130,10 @@ public class CustomWaypointMapLayer : WaypointMapLayer
 
     private void UpdateGUI()
     {
-        if(_guiDialogWorldMap.Composers[ComposerKey]?.GetElement("wplist") is not GuiElementDropDown dropdown) return;
+        if(_guiDialogWorldMap is null || _guiDialogWorldMap.Composers[ComposerKey]?.GetElement("wplist") is not GuiElementDropDown dropdown) return;
         
-        
-        var newValues = SortedWaypointItems.Select(o => o.Id).ToArray();
-        var newNames = SortedWaypointItems.Select(o => o.Title).ToArray();
+        string[] newValues = ["placeholder", .. SortedWaypointItems.Select(o => o.Id)];
+        string[] newNames = ["- - -", .. SortedWaypointItems.Select(o => o.Title)];
         
         if(newValues.SequenceEqual(dropdown.listMenu.Values) && newNames.SequenceEqual(dropdown.listMenu.Names)) return;
         dropdown.SetList(newValues, newNames);
@@ -149,38 +148,37 @@ public class CustomWaypointMapLayer : WaypointMapLayer
         {
             Waypoint waypoint = ownWaypoints[i];
 
-            if (waypoint.Title.Contains(SearchText, StringComparison.InvariantCultureIgnoreCase))
-            {
-                //HACK: work around for vanilla issue where server returns an empty Guid for story locations and death points (can be solved by restarting the server)
-                if (waypoint.Guid is null)
-                {
-                    waypoint.Guid = Guid.NewGuid().ToString();
-                    logger.Warning($"Fixed Waypoint GUID for '{waypoint.Title}' (vanilla issue)");
-                }
+            if (!waypoint.Title.Contains(SearchText, StringComparison.InvariantCultureIgnoreCase)) continue;
 
-                float distance = (float)Math.Sqrt(Math.Pow(playerPosition.X - waypoint.Position.X, 2) + Math.Pow(playerPosition.Z - waypoint.Position.Z, 2));
-                SortedWaypointItems.Add(new WaypointListItem
-                {
-                    Id = waypoint.Guid,
-                    Title = $"{waypoint.Title} - {distance:F2}m",
-                    Distance = distance,
-                    Index = i
-                });
+            //HACK: work around for vanilla issue where server returns an empty Guid for story locations and death points (can be solved by restarting the server)
+            if (waypoint.Guid is null)
+            {
+                waypoint.Guid = Guid.NewGuid().ToString();
+                logger.Warning($"Fixed Waypoint GUID for '{waypoint.Title}' (vanilla issue)");
             }
+
+            float distance = (float)Math.Sqrt(Math.Pow(playerPosition.X - waypoint.Position.X, 2) + Math.Pow(playerPosition.Z - waypoint.Position.Z, 2));
+            SortedWaypointItems.Add(new WaypointListItem
+            {
+                Id = waypoint.Guid,
+                Title = $"{waypoint.Title} - {distance:F2}m",
+                Distance = distance,
+                Index = i
+            });
         }
 
-        SortedWaypointItems = OrderBy switch
+        SortedWaypointItems.Sort(OrderBy switch
         {
-            "timeasc" => SortedWaypointItems.OrderBy(o => o.Index).ToList(),
-            "timedesc" => SortedWaypointItems.OrderByDescending(o => o.Index).ToList(),
-            "distanceasc" => SortedWaypointItems.OrderBy(o => o.Distance).ToList(),
-            "distancedesc" => SortedWaypointItems.OrderByDescending(o => o.Distance).ToList(),
-            "titleasc" => SortedWaypointItems.OrderBy(o => o.Title).ToList(),
-            "titledesc" => SortedWaypointItems.OrderByDescending(o => o.Title).ToList(),
-        };
+            "timeasc"      => static (a, b) => a.Index.CompareTo(b.Index),
+            "timedesc"     => static (a, b) => b.Index.CompareTo(a.Index),
+            "distanceasc"  => static (a, b) => a.Distance.CompareTo(b.Distance),
+            "distancedesc" => static (a, b) => b.Distance.CompareTo(a.Distance),
+            "titleasc"     => static (a, b) => string.Compare(a.Title, b.Title, StringComparison.OrdinalIgnoreCase),
+            "titledesc"    => static (a, b) => string.Compare(b.Title, a.Title, StringComparison.OrdinalIgnoreCase),
+            _ => throw new NotSupportedException($"Unsopported OrderBy was detected: '{OrderBy}'")
+        });
 
         //Add an empty start/unselect element
-        SortedWaypointItems.Insert(0, new WaypointListItem { Id = "placeholder", Title = "- - -", Distance = 0, Index = -1 });
     }
 
     private void OnSearchTextChanged(string text)
@@ -198,16 +196,17 @@ public class CustomWaypointMapLayer : WaypointMapLayer
 
     private void OnSelectedWaypointChanged(string waypointId, bool selected)
     {
-        if (string.IsNullOrEmpty(waypointId) || waypointId == "placeholder")  return;
+        if (_compo is null || string.IsNullOrEmpty(waypointId) || waypointId == "placeholder") return;
 
         var selectedWaypoint = ownWaypoints.Find(waypoint => waypoint.Guid == waypointId);
-        if(selectedWaypoint is null)
+        if (selectedWaypoint is null)
         {
-            logger.Error("Could not find waypoint by identifier: {Identifier}", waypointId);
+            logger.Error("Could not find waypoint by identifier: {0}", waypointId);
             return;
         }
 
-        var mapElem = _compo.GetElement("mapElem") as GuiElementMap;
+        if (_compo.GetElement("mapElem") is not GuiElementMap mapElem) return;
+
         mapElem.CenterMapTo(selectedWaypoint.Position.AsBlockPos);
     }
 
@@ -215,7 +214,6 @@ public class CustomWaypointMapLayer : WaypointMapLayer
     {
         base.OnDataFromServer(data);
 
-        //TODO Couldn't figure out why we mark dirty here, but ideally we should avoid calling dirty here as it is called a lot when interacting with the map
         MarkDirty();
     }
 }

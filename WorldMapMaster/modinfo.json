@@ -1,19 +1,19 @@
 {
   "type": "code",
-  "modid": "worldmapmaster",
-  "name": "World Map Master (WMM)",
+  "modid": "worldmapmasterreforged",
+  "name": "World Map Master Reforged",
   "authors": [
-    "ZigTheHedge, z3r0-toru"
+    "TheInsanityGod"
   ],
   "Contributors": [
-    "TheInsanityGod",
+    "ZigTheHedge",
+    "z3r0-toru",
     "KnewOne"
   ],
   "description": "A couple of tweaks and QOL additions for the World Map",
-  "requiredOnClient": false,
-  "requiredOnServer": false,
-  "version": "1.0.5",
+  "Side": "Client",
+  "version": "1.0.0",
   "dependencies": {
-    "game": "1.22.0-rc.1"
+    "game": ""
   }
 }

@@ -1,0 +1,14 @@
+{
+  "hotkey-waypoint-delete": "Remove hovered Waypoint",
+  "hotkey-waypoint-add": "Add a Waypoint at current position",
+  "hotkey-waypoint-quickadd": "Add a Waypoint at current position with default title",
+  "hotkey-waypoint-quickaddtarget": "Adds a Waypoint for the Entity/Block you are looking at",
+  "waypoints-title": "Your waypoints:",
+
+  "timeasc": "Time (asc)",
+  "timedesc": "Time (desc)",
+  "distanceasc": "Distance (asc)",
+  "distancedesc": "Distance (desc)",
+  "titleasc": "Title (asc)",
+  "titledesc": "Title (desc)"
+}
