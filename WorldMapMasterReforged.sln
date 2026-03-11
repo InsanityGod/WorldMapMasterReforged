@@ -5,7 +5,7 @@ VisualStudioVersion = 18.3.11520.95 d18.3
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CakeBuild", "CakeBuild\CakeBuild.csproj", "{27C6F196-0390-4B34-8586-C86AE82294F5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorldMapMasterReforged", "WorldMapMaster\WorldMapMasterReforged.csproj", "{111F99C1-0A00-4CC1-8C81-FC517BD3F637}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorldMapMasterReforged", "WorldMapMasterReforged\WorldMapMasterReforged.csproj", "{111F99C1-0A00-4CC1-8C81-FC517BD3F637}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
