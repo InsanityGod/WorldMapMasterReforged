@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using HarmonyLib;
+using System.Linq;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
@@ -14,16 +15,17 @@ public partial class WorldMapMasterReforgedModSystem : ModSystem
     
     private GuiDialogAddWayPoint? addWaypointDialog;
 
+    private ICoreAPI? _api;
+
     public override void StartPre(ICoreAPI api)
     {
         base.StartPre(api);
-        AutoSetup(api);
-    }
+        _api = api;
 
-    public override void AssetsLoaded(ICoreAPI api)
-    {
-        base.AssetsLoaded(api);
-        AutoAssetsLoaded(api);
+        if (Harmony.HasAnyPatches("worldmapmasterreforged")) return;
+        
+        var harmony = new Harmony("worldmapmasterreforged");
+        harmony.PatchAllUncategorized();
     }
     
     public override void StartClientSide(ICoreClientAPI api)
@@ -116,6 +118,6 @@ public partial class WorldMapMasterReforgedModSystem : ModSystem
     public override void Dispose()
     {
         base.Dispose();
-        AutoDispose();
+        new Harmony("worldmapmasterreforged").UnpatchAll("worldmapmasterreforged");
     }
 }

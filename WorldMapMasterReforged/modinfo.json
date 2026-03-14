@@ -12,7 +12,7 @@
   ],
   "description": "A couple of tweaks and QOL additions for the World Map",
   "Side": "Client",
-  "version": "1.0.0",
+  "version": "0.9.9",
   "dependencies": {
     "game": ""
   }
